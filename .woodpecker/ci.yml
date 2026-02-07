@@ -1,0 +1,98 @@
+# Quest Web CI Pipeline
+when:
+  - event: pull_request
+  - event: push
+    branch: main
+
+variables:
+  - &node_image "node:22-alpine"
+  - &cache_image "meltwater/drone-cache"
+  - &s3_endpoint "http://seaweed-filer.seaweedfs.svc:8333"
+  - &s3_bucket "ci-cache"
+  - &s3_region "us-east-1"
+
+steps:
+  # ============================================
+  # Cache Restore
+  # ============================================
+  restore-cache:
+    image: *cache_image
+    settings:
+      backend: s3
+      endpoint: *s3_endpoint
+      bucket: *s3_bucket
+      region: *s3_region
+      path_style: true
+      access_key: any
+      secret_key: any
+      restore: true
+      cache_key: "{{ .Repo.Name }}/{{ .Commit.Branch }}"
+      mount:
+        - .pnpm-store
+
+  # ============================================
+  # Dependencies
+  # ============================================
+  deps:
+    image: *node_image
+    commands:
+      - corepack enable
+      - pnpm config set store-dir .pnpm-store
+      - pnpm install --frozen-lockfile
+    depends_on:
+      - restore-cache
+
+  # ============================================
+  # Lint
+  # ============================================
+  lint:
+    image: *node_image
+    commands:
+      - corepack enable
+      - pnpm lint
+    depends_on:
+      - deps
+
+  # ============================================
+  # Build
+  # ============================================
+  build:
+    image: *node_image
+    commands:
+      - corepack enable
+      - pnpm build
+    depends_on:
+      - deps
+
+  # ============================================
+  # Storybook Build
+  # ============================================
+  storybook-build:
+    image: *node_image
+    commands:
+      - corepack enable
+      - pnpm build-storybook
+    depends_on:
+      - deps
+
+  # ============================================
+  # Cache Rebuild
+  # ============================================
+  rebuild-cache:
+    image: *cache_image
+    settings:
+      backend: s3
+      endpoint: *s3_endpoint
+      bucket: *s3_bucket
+      region: *s3_region
+      path_style: true
+      access_key: any
+      secret_key: any
+      rebuild: true
+      cache_key: "{{ .Repo.Name }}/{{ .Commit.Branch }}"
+      mount:
+        - .pnpm-store
+    depends_on:
+      - lint
+      - build
+      - storybook-build
