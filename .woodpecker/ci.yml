@@ -96,3 +96,24 @@ steps:
       - lint
       - build
       - storybook-build
+
+  # ============================================
+  # Docker Publish (main only)
+  # ============================================
+  docker:
+    image: plugins/docker
+    settings:
+      registry: ghcr.io
+      repo: ghcr.io/changsoonkim/quest-web
+      tags:
+        - latest
+        - "${CI_COMMIT_SHA:0:8}"
+      username:
+        from_secret: github_username
+      password:
+        from_secret: github_token
+    when:
+      - event: push
+        branch: main
+    depends_on:
+      - rebuild-cache
