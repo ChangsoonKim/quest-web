@@ -26,7 +26,7 @@ steps:
       access_key: any
       secret_key: any
       restore: true
-      cache_key: "{{ .Repo.Name }}/{{ .Commit.Branch }}"
+      cache_key: "quest-web/{{ .Commit.Branch }}"
       mount:
         - .pnpm-store
 
@@ -89,7 +89,7 @@ steps:
       access_key: any
       secret_key: any
       rebuild: true
-      cache_key: "{{ .Repo.Name }}/{{ .Commit.Branch }}"
+      cache_key: "quest-web/{{ .Commit.Branch }}"
       mount:
         - .pnpm-store
     depends_on:
@@ -101,19 +101,20 @@ steps:
   # Docker Publish (main only)
   # ============================================
   docker:
-    image: plugins/docker
+    image: woodpeckerci/plugin-docker-buildx
+    privileged: true
     settings:
-      registry: ghcr.io
-      repo: ghcr.io/changsoonkim/quest-web
+      repo: registry.dmz.nado.cloud/nado/quest-web
+      registry: registry.dmz.nado.cloud
       tags:
+        - ${CI_COMMIT_SHA:0:8}
         - latest
-        - "${CI_COMMIT_SHA:0:8}"
       username:
-        from_secret: github_username
+        from_secret: docker_username
       password:
-        from_secret: github_token
+        from_secret: docker_password
     when:
-      - event: push
-        branch: main
+      branch: main
+      event: push
     depends_on:
       - rebuild-cache
