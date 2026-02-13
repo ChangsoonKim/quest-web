@@ -31,7 +31,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       login: async (credentials) => {
         const res = await authApi.login(credentials)
         set({
-          token: res.token,
+          token: res.access_token,
           user: res.user,
           isAuthenticated: true,
         })
