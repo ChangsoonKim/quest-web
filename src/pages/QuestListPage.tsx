@@ -4,6 +4,8 @@ import { QuestCard, type QuestStatus } from "@/components/feature/QuestCard"
 import { QuestLayout } from "@/components/layout/QuestLayout"
 import { PhotoUploader } from "@/components/feature/PhotoUploader"
 import { questApi, type Quest } from "@/lib/api"
+import { useFamilyStore } from "@/stores/useFamilyStore"
+import { uploadToMediaForge } from "@/lib/media-forge"
 
 // Map backend status to QuestCard status
 function mapQuestStatus(status: string): QuestStatus {
@@ -20,18 +22,22 @@ function mapQuestStatus(status: string): QuestStatus {
 export function QuestListPage() {
   const queryClient = useQueryClient()
   const [selectedQuestId, setSelectedQuestId] = useState<string | null>(null)
-
-  // TODO: Get familyId from user's family context
-  const familyId = "temp-family-id"
+  const currentFamily = useFamilyStore((state) => state.getCurrentFamily())
+  const familyId = currentFamily?.id
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["quests", familyId],
-    queryFn: () => questApi.list(familyId),
+    queryFn: () => questApi.list(familyId!),
+    enabled: !!familyId,
   })
 
   const submitProofMutation = useMutation({
-    mutationFn: ({ questId, mediaId }: { questId: string; mediaId: string }) =>
-      questApi.submitProof(questId, { mediaId }),
+    mutationFn: async ({ questId, file }: { questId: string; file: File }) => {
+      // Upload to media-forge first
+      const uploadResult = await uploadToMediaForge(file)
+      // Then submit proof with media key
+      return questApi.submitProof(questId, { mediaId: uploadResult.key })
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["quests", familyId] })
       setSelectedQuestId(null)
@@ -48,10 +54,7 @@ export function QuestListPage() {
       return
     }
 
-    // TODO: Upload file to media service and get mediaId
-    console.log("File selected:", file.name)
-    const mockMediaId = "temp-media-id"
-    submitProofMutation.mutate({ questId: selectedQuestId, mediaId: mockMediaId })
+    submitProofMutation.mutate({ questId: selectedQuestId, file })
   }
 
   if (isLoading) {
