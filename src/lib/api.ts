@@ -1,6 +1,6 @@
 import type { AuthUser } from "@/stores/useAuthStore"
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api"
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api/v1"
 
 function getToken(): string | null {
   try {
@@ -228,25 +228,25 @@ export interface ListFamilyMembersResponse {
 
 export const familyApi = {
   create: (data: CreateFamilyRequest) =>
-    apiFetch<Family>("/v1/families", {
+    apiFetch<Family>("/families", {
       method: "POST",
       body: JSON.stringify(data),
     }),
 
   addMember: (familyId: string, data: { userId: string; nickname?: string; role: "PARENT" | "CHILD" }) =>
-    apiFetch<FamilyMember>(`/v1/families/${familyId}/members`, {
+    apiFetch<FamilyMember>(`/families/${familyId}/members`, {
       method: "POST",
       body: JSON.stringify(data),
     }),
 
   getMembers: (familyId: string) =>
-    apiFetch<ListFamilyMembersResponse>(`/v1/families/${familyId}/members`),
+    apiFetch<ListFamilyMembersResponse>(`/families/${familyId}/members`),
 
   getUserFamilies: () =>
-    apiFetch<ListUserFamiliesResponse>("/v1/users/me/families"),
+    apiFetch<ListUserFamiliesResponse>("/users/me/families"),
 
   createInvitation: (familyId: string, data: { role: "PARENT" | "CHILD" }) =>
-    apiFetch<InvitationInfo>(`/v1/families/${familyId}/invitations`, {
+    apiFetch<InvitationInfo>(`/families/${familyId}/invitations`, {
       method: "POST",
       body: JSON.stringify(data),
     }),
@@ -261,28 +261,28 @@ export const questApi = {
     if (params?.offset) query.set("offset", params.offset.toString())
     if (params?.status) query.set("status", params.status)
     const queryString = query.toString()
-    return apiFetch<ListQuestsResponse>(`/v1/families/${familyId}/quests${queryString ? `?${queryString}` : ""}`)
+    return apiFetch<ListQuestsResponse>(`/families/${familyId}/quests${queryString ? `?${queryString}` : ""}`)
   },
 
   create: (familyId: string, data: CreateQuestRequest) =>
-    apiFetch<Quest>(`/v1/families/${familyId}/quests`, {
+    apiFetch<Quest>(`/families/${familyId}/quests`, {
       method: "POST",
       body: JSON.stringify(data),
     }),
 
   submitProof: (questId: string, data: SubmitProofRequest) =>
-    apiFetch<QuestProof>(`/v1/quests/${questId}/proofs`, {
+    apiFetch<QuestProof>(`/quests/${questId}/proofs`, {
       method: "POST",
       body: JSON.stringify(data),
     }),
 
   approve: (questId: string) =>
-    apiFetch<Quest>(`/v1/quests/${questId}/approve`, {
+    apiFetch<Quest>(`/quests/${questId}/approve`, {
       method: "PUT",
     }),
 
   reject: (questId: string, data: RejectQuestRequest) =>
-    apiFetch<Quest>(`/v1/quests/${questId}/reject`, {
+    apiFetch<Quest>(`/quests/${questId}/reject`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
@@ -292,5 +292,5 @@ export const questApi = {
 
 export const pointApi = {
   getUserPoints: (familyId: string, userId: string) =>
-    apiFetch<UserPoints>(`/v1/families/${familyId}/users/${userId}/points`),
+    apiFetch<UserPoints>(`/families/${familyId}/users/${userId}/points`),
 }

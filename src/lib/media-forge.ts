@@ -22,7 +22,7 @@ export async function uploadToMediaForge(file: File): Promise<UploadResult> {
     headers["Authorization"] = `Bearer ${token}`
   }
 
-  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL ?? "/api"}/v1/media/upload`, {
+  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL ?? "/api/v1"}/media/upload`, {
     method: "POST",
     headers,
     body: formData,
