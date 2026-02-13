@@ -4,15 +4,17 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { PointBadge } from "@/components/ui/PointBadge"
 import { questApi } from "@/lib/api"
+import { useFamilyStore } from "@/stores/useFamilyStore"
 
 export function PendingProofsPage() {
   const queryClient = useQueryClient()
-  // TODO: Get familyId from user's family context
-  const familyId = "temp-family-id"
+  const currentFamily = useFamilyStore((state) => state.getCurrentFamily())
+  const familyId = currentFamily?.id
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["quests", familyId, "submitted"],
-    queryFn: () => questApi.list(familyId, { status: "SUBMITTED" }),
+    queryFn: () => questApi.list(familyId!, { status: "SUBMITTED" }),
+    enabled: !!familyId,
   })
 
   const approveMutation = useMutation({
@@ -43,6 +45,16 @@ export function PendingProofsPage() {
     if (reason) {
       rejectMutation.mutate({ questId, reason })
     }
+  }
+
+  if (!familyId) {
+    return (
+      <QuestLayout>
+        <div className="flex h-64 items-center justify-center">
+          <p className="text-muted-foreground">가족 정보를 불러오는 중...</p>
+        </div>
+      </QuestLayout>
+    )
   }
 
   if (isLoading) {
