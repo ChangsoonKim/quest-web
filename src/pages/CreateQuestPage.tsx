@@ -1,13 +1,17 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import { QuestLayout } from "@/components/layout/QuestLayout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { questApi, type CreateQuestRequest } from "@/lib/api"
+import { questApi, familyApi, type CreateQuestRequest } from "@/lib/api"
+import { useFamilyStore } from "@/stores/useFamilyStore"
 
 export function CreateQuestPage() {
   const navigate = useNavigate()
+  const currentFamily = useFamilyStore((state) => state.getCurrentFamily())
+  const familyId = currentFamily?.id
+
   const [formData, setFormData] = useState<CreateQuestRequest>({
     assignedToUserId: "",
     title: "",
@@ -16,11 +20,18 @@ export function CreateQuestPage() {
     dueAt: new Date().toISOString().split("T")[0],
   })
 
-  // TODO: Get familyId from user's family context
-  const familyId = "temp-family-id"
+  // Fetch family members
+  const { data: membersData } = useQuery({
+    queryKey: ["family-members", familyId],
+    queryFn: () => familyApi.getMembers(familyId!),
+    enabled: !!familyId,
+  })
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateQuestRequest) => questApi.create(familyId, data),
+    mutationFn: (data: CreateQuestRequest) => {
+      if (!familyId) throw new Error("No family selected")
+      return questApi.create(familyId, data)
+    },
     onSuccess: () => {
       navigate("/")
     },
@@ -32,7 +43,23 @@ export function CreateQuestPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!familyId) {
+      alert("가족을 선택해주세요.")
+      return
+    }
     createMutation.mutate(formData)
+  }
+
+  const members = membersData?.data ?? []
+
+  if (!familyId) {
+    return (
+      <QuestLayout>
+        <div className="flex h-64 items-center justify-center">
+          <p className="text-muted-foreground">가족 정보를 불러오는 중...</p>
+        </div>
+      </QuestLayout>
+    )
   }
 
   return (
@@ -74,16 +101,20 @@ export function CreateQuestPage() {
             <label htmlFor="assignedTo" className="text-sm font-medium">
               담당자 *
             </label>
-            <Input
+            <select
               id="assignedTo"
               value={formData.assignedToUserId}
               onChange={(e) => setFormData({ ...formData, assignedToUserId: e.target.value })}
-              placeholder="User ID"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               required
-            />
-            <p className="text-xs text-muted-foreground">
-              TODO: 가족 구성원 선택 드롭다운으로 변경
-            </p>
+            >
+              <option value="">선택하세요</option>
+              {members.map((member) => (
+                <option key={member.id} value={member.userId}>
+                  {member.nickname} ({member.role === "PARENT" ? "부모" : "자녀"})
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

@@ -213,6 +213,19 @@ export const invitationApi = {
 
 // --- Family API ---
 
+export interface UserFamilyInfo {
+  family: Family
+  member: FamilyMember
+}
+
+export interface ListUserFamiliesResponse {
+  data: UserFamilyInfo[]
+}
+
+export interface ListFamilyMembersResponse {
+  data: FamilyMember[]
+}
+
 export const familyApi = {
   create: (data: CreateFamilyRequest) =>
     apiFetch<Family>("/v1/families", {
@@ -225,6 +238,12 @@ export const familyApi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+
+  getMembers: (familyId: string) =>
+    apiFetch<ListFamilyMembersResponse>(`/v1/families/${familyId}/members`),
+
+  getUserFamilies: () =>
+    apiFetch<ListUserFamiliesResponse>("/v1/users/me/families"),
 
   createInvitation: (familyId: string, data: { role: "PARENT" | "CHILD" }) =>
     apiFetch<InvitationInfo>(`/v1/families/${familyId}/invitations`, {
