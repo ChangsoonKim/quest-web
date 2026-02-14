@@ -109,10 +109,6 @@ steps:
       tags:
         - ${CI_COMMIT_SHA:0:8}
         - latest
-      username:
-        from_secret: docker_username
-      password:
-        from_secret: docker_password
     when:
       branch: main
       event: push
